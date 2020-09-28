@@ -59,8 +59,28 @@ public class CIS3319Lab2Server {
         System.out.println("Ciphertext = " + Arrays.toString(cipherText));
         byte[] plainAndMac = cipher.doFinal(cipherText);
         byte[] plainText = new byte[16];
-        // To split plainAndMac, using copyOfRange method 
-        plainText.copyOfRange(plainAndMac, 0, 15);
+        
+        // To split plainAndMac, using copyOfRange method; doesn't work for whatever reason  
+        //plainText.copyOfRange(plainAndMac, 0, 15);
+        
+        // System.arraycopy() instead? 
+        System.arraycopy(plainAndMac, 0, plainText, 0, 16);
+        message = new String(plainText);
+        System.out.println(message);
+        
+        byte[] macBytes = new byte[32]; 
+        System.arraycopy(plainAndMac, 16, macBytes, 0, 32);
+        System.out.println("Received HMAC = " + Arrays.toString(macBytes));
+        
+        byte[] calculatedMacBytes = mac.doFinal(plainText); 
+        System.out.println("Calculated HMAC = " + Arrays.toString(calculatedMacBytes));
+        
+        if (Arrays.equals(macBytes, calculatedMacBytes)) {
+            System.out.println("HMAC Verified");
+        } else {
+            System.out.println("Error. Review your code.");
+        }
+        
         
         // Original method of receiving receiving cipherText, decrypts plainText and derives HMAC from it 
         
@@ -92,7 +112,15 @@ public class CIS3319Lab2Server {
         
         // Server response turned into byte array, which is encrypted by the cipher object, and sent over the DataOutputStream 
         byte[] plainText2 = message2.getBytes();
-        byte[] cipherText2 = cipher.doFinal(plainText2);
+        
+        // Generate MAC of Server's return message 
+        byte[] macBytes2 = mac.doFinal(plainText2);
+        
+        byte[] plainAndMac2 = new byte[plainText2.length + macBytes2.length];
+        System.arraycopy(plainText2, 0, plainAndMac2, 0, plainText2.length);
+        System.arraycopy(macBytes2, 0, plainAndMac2, plainText2.length, macBytes2.length);
+        
+        byte[] cipherText2 = cipher.doFinal(plainAndMac2);
         System.out.println("Ciphertext = " + Arrays.toString(cipherText2));
         
         dout.write(cipherText2, 0, cipherText2.length);
